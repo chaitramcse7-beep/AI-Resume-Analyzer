@@ -6,19 +6,11 @@ from sklearn.metrics.pairwise import cosine_similarity
 # Page Config
 st.set_page_config(page_title="AI Career Assistant", layout="wide")
 
-# Custom Styling
+# Styling
 st.markdown("""
     <style>
-    .title {
-        text-align: center;
-        font-size: 36px;
-        font-weight: bold;
-    }
-    .subtitle {
-        text-align: center;
-        color: gray;
-        margin-bottom: 20px;
-    }
+    .title { text-align: center; font-size: 36px; font-weight: bold; }
+    .subtitle { text-align: center; color: gray; margin-bottom: 20px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -45,16 +37,19 @@ with col2:
         "Marketing Executive"
     ])
 
-# Job Descriptions
-job_descriptions = {
-    "Data Scientist": "python machine learning data analysis statistics pandas numpy",
+# Job Descriptions (Expanded - IT + Non-IT)
+job_data = {
+    "Data Scientist": "python machine learning statistics data analysis pandas numpy",
     "Web Developer": "html css javascript react node web development",
     "AI Engineer": "python deep learning nlp tensorflow pytorch",
-    "HR Manager": "communication recruitment leadership employee relations",
-    "Marketing Executive": "seo content marketing social media branding"
+    "HR Manager": "recruitment communication leadership employee relations hiring",
+    "Marketing Executive": "seo content marketing branding social media advertising",
+    "Business Analyst": "excel sql data visualization business analysis communication",
+    "Financial Analyst": "finance accounting excel forecasting analysis reporting",
+    "Sales Executive": "sales negotiation communication crm client relationship"
 }
 
-# Extract text from PDF
+# Extract PDF text
 def extract_text(file):
     reader = PyPDF2.PdfReader(file)
     text = ""
@@ -70,19 +65,19 @@ if uploaded_file:
 
     resume_text = extract_text(uploaded_file)
 
+    # --- MAIN MATCH SCORE ---
     vectorizer = TfidfVectorizer()
-    vectors = vectorizer.fit_transform([resume_text, job_descriptions[job_desc]])
+    vectors = vectorizer.fit_transform([resume_text, job_data[job_desc]])
 
     similarity = cosine_similarity(vectors[0], vectors[1])[0][0]
     score = round(similarity * 100, 2)
 
-    # Score
     st.metric(label="Match Score", value=f"{score}%")
     st.progress(int(score))
 
-    # Skill Comparison
+    # --- SKILL ANALYSIS ---
     resume_words = set(resume_text.lower().split())
-    job_words = set(job_descriptions[job_desc].split())
+    job_words = set(job_data[job_desc].split())
 
     matched_skills = job_words.intersection(resume_words)
     missing_skills = job_words - resume_words
@@ -97,6 +92,22 @@ if uploaded_file:
         st.subheader("Missing Skills")
         st.write(", ".join(missing_skills) if missing_skills else "None")
 
-    # Suggestion
     if missing_skills:
         st.info("Recommended skills to improve: " + ", ".join(missing_skills))
+
+    # --- 🔥 JOB RECOMMENDATION LOGIC ---
+    st.divider()
+    st.subheader("Top Job Recommendations")
+
+    scores = []
+
+    for role, desc in job_data.items():
+        vectors = vectorizer.fit_transform([resume_text, desc])
+        similarity = cosine_similarity(vectors[0], vectors[1])[0][0]
+        scores.append((role, similarity))
+
+    # Sort and get top 3
+    top_jobs = sorted(scores, key=lambda x: x[1], reverse=True)[:3]
+
+    for role, score in top_jobs:
+        st.write(f"{role} — Match: {round(score*100,2)}%")
