@@ -1,141 +1,142 @@
 import streamlit as st
 import PyPDF2
+import pandas as pd
+import re
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Page Config
+# ---------------- CONFIG ----------------
 st.set_page_config(page_title="AI Career Assistant", layout="wide")
 
-# Styling
+# ---------------- UI STYLE ----------------
 st.markdown("""
     <style>
-    .title { text-align: center; font-size: 36px; font-weight: bold; }
-    .subtitle { text-align: center; color: gray; margin-bottom: 20px; }
+    .title { text-align: center; font-size: 40px; font-weight: 600; }
+    .subtitle { text-align: center; color: gray; margin-bottom: 25px; }
+    .card {
+        padding: 20px;
+        border-radius: 10px;
+        background-color: #f9f9f9;
+        margin-bottom: 15px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# Header
+# ---------------- HEADER ----------------
 st.markdown('<div class="title">AI Career Assistant</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Resume Analysis | Job Recommendations | Skill Improvement</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Resume Analysis • Career Matching • Skill Growth</div>', unsafe_allow_html=True)
 
 st.divider()
 
-# Upload
-st.subheader("Upload Resume")
-uploaded_file = st.file_uploader("Upload PDF", type=["pdf"])
+# ---------------- FILE UPLOAD ----------------
+uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
 
-# Job Data (IT + Non-IT)
-job_data = {
-    "Data Scientist": "python machine learning statistics data analysis pandas numpy",
-    "Web Developer": "html css javascript react node web development",
-    "AI Engineer": "python deep learning nlp tensorflow pytorch",
-    "HR Manager": "recruitment communication leadership employee relations hiring",
-    "Marketing Executive": "seo content marketing branding social media advertising",
-    "Business Analyst": "excel sql data visualization business analysis communication",
-    "Financial Analyst": "finance accounting excel forecasting analysis reporting",
-    "Sales Executive": "sales negotiation communication crm client relationship"
-}
+# ---------------- LOAD DATA ----------------
+jobs_df = pd.read_csv("data/jobs.csv")
+courses_df = pd.read_csv("data/courses.csv")
 
-# Course Data
-course_data = {
-    "python": [
-        ("Python for Everybody (Free)", "https://www.coursera.org/specializations/python"),
-        ("Complete Python Bootcamp (Paid)", "https://www.udemy.com/course/complete-python-bootcamp/")
-    ],
-    "machine learning": [
-        ("Machine Learning by Andrew Ng (Free)", "https://www.coursera.org/learn/machine-learning"),
-        ("ML A-Z Course (Paid)", "https://www.udemy.com/course/machinelearning/")
-    ],
-    "sql": [
-        ("SQL for Data Science (Free)", "https://www.coursera.org/learn/sql-for-data-science"),
-        ("SQL Bootcamp (Paid)", "https://www.udemy.com/course/the-complete-sql-bootcamp/")
-    ],
-    "excel": [
-        ("Excel Skills for Business (Free)", "https://www.coursera.org/specializations/excel"),
-        ("Advanced Excel Course (Paid)", "https://www.udemy.com/course/excel-from-beginner-to-advanced/")
-    ],
-    "communication": [
-        ("Improving Communication Skills (Free)", "https://www.coursera.org/learn/wharton-communication-skills"),
-        ("Business Communication (Paid)", "https://www.udemy.com/course/business-communication-skills/")
-    ],
-    "marketing": [
-        ("Digital Marketing (Free)", "https://www.coursera.org/specializations/digital-marketing"),
-        ("Marketing Masterclass (Paid)", "https://www.udemy.com/course/marketing-masterclass/")
-    ],
-    "react": [
-        ("Frontend Development with React (Free)", "https://www.coursera.org/learn/frontend-react"),
-        ("React Complete Guide (Paid)", "https://www.udemy.com/course/react-the-complete-guide-incl-redux/")
-    ]
-}
+# ---------------- FUNCTIONS ----------------
+def clean_text(text):
+    text = text.lower()
+    text = re.sub(r'[^a-z\s]', '', text)
+    return text
 
-# Extract PDF
 def extract_text(file):
     reader = PyPDF2.PdfReader(file)
     text = ""
     for page in reader.pages:
         if page.extract_text():
             text += page.extract_text()
-    return text.lower()
+    return clean_text(text)
 
-# Main Logic
+# ---------------- MAIN ----------------
 if uploaded_file:
     st.divider()
-    st.subheader("Analysis Results")
 
     resume_text = extract_text(uploaded_file)
 
-    vectorizer = TfidfVectorizer()
-
-    # --- JOB MATCHING ---
+    vectorizer = TfidfVectorizer(stop_words='english')
     scores = []
 
-    for role, desc in job_data.items():
-        vectors = vectorizer.fit_transform([resume_text, desc])
+    for _, row in jobs_df.iterrows():
+        role = row["role"]
+        skills = row["skills"]
+
+        vectors = vectorizer.fit_transform([resume_text, skills])
         similarity = cosine_similarity(vectors[0], vectors[1])[0][0]
-        scores.append((role, similarity))
+
+        scores.append((role, similarity, skills))
 
     top_jobs = sorted(scores, key=lambda x: x[1], reverse=True)[:3]
 
-    # Show Top Roles
+    # ---------------- SUMMARY ----------------
+    st.subheader("Profile Summary")
+
+    best_role, best_score, best_skills = top_jobs[0]
+
+    st.markdown(f"""
+    <div class="card">
+    <b>Best Matched Role:</b> {best_role} <br>
+    <b>Match Confidence:</b> {round(best_score*100,2)}%
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.progress(int(best_score * 100))
+
+    # ---------------- JOB MATCHES ----------------
     st.subheader("Top Career Matches")
 
-    for role, score in top_jobs:
-        st.write(f"{role} — Match: {round(score*100,2)}%")
+    cols = st.columns(3)
 
-    # --- SKILL ANALYSIS (use best role) ---
-    best_role = top_jobs[0][0]
-    job_words = set(job_data[best_role].split())
+    for i, (role, score, _) in enumerate(top_jobs):
+        with cols[i]:
+            st.markdown(f"""
+            <div class="card">
+            <b>{role}</b><br>
+            Match: {round(score*100,2)}%
+            </div>
+            """, unsafe_allow_html=True)
+
+    # ---------------- SKILLS ----------------
+    job_words = set(best_skills.split())
     resume_words = set(resume_text.split())
 
-    matched_skills = job_words.intersection(resume_words)
-    missing_skills = job_words - resume_words
+    matched = job_words.intersection(resume_words)
+    missing = job_words - resume_words
+
+    st.subheader("Skill Analysis")
 
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("Matched Skills")
-        st.write(", ".join(matched_skills) if matched_skills else "None")
+        st.markdown("<div class='card'><b>Matched Skills</b><br>" +
+                    (", ".join(matched) if matched else "None") +
+                    "</div>", unsafe_allow_html=True)
 
     with col2:
-        st.subheader("Missing Skills")
-        st.write(", ".join(missing_skills) if missing_skills else "None")
+        st.markdown("<div class='card'><b>Skill Gaps</b><br>" +
+                    (", ".join(missing) if missing else "None") +
+                    "</div>", unsafe_allow_html=True)
 
-    # --- COURSE RECOMMENDATION ---
-    st.divider()
-    st.subheader("Recommended Courses")
+    # ---------------- COURSES ----------------
+    st.subheader("Recommended Learning")
 
-    recommended_courses = []
-    used = set()
+    rec_courses = []
 
-    for skill in list(missing_skills)[:3]:
-        for key in course_data:
-            if key in skill and key not in used:
-                recommended_courses.extend(course_data[key])
-                used.add(key)
+    for skill in list(missing)[:3]:
+        filtered = courses_df[courses_df["skill"].str.contains(skill, case=False, na=False)]
+        rec_courses.append(filtered)
 
-    if recommended_courses:
-        for course in recommended_courses[:3]:
-            name, link = course
-            st.markdown(f"- [{name}]({link})")
+    if rec_courses:
+        result = pd.concat(rec_courses).drop_duplicates().head(3)
+
+        for _, row in result.iterrows():
+            st.markdown(f"""
+            <div class="card">
+            <b>{row['course_name']}</b><br>
+            Type: {row['type']} <br>
+            <a href="{row['link']}" target="_blank">View Course</a>
+            </div>
+            """, unsafe_allow_html=True)
     else:
-        st.write("No specific courses found. Improve general skills.")
+        st.write("No direct course matches found.")

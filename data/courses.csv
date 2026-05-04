@@ -1,0 +1,15 @@
+skill,course_name,link,type
+python,Python for Everybody,https://www.coursera.org/specializations/python,Free
+python,Complete Python Bootcamp,https://www.udemy.com/course/complete-python-bootcamp/,Paid
+machine learning,Machine Learning by Andrew Ng,https://www.coursera.org/learn/machine-learning,Free
+machine learning,ML A-Z Course,https://www.udemy.com/course/machinelearning/,Paid
+sql,SQL for Data Science,https://www.coursera.org/learn/sql-for-data-science,Free
+sql,SQL Bootcamp,https://www.udemy.com/course/the-complete-sql-bootcamp/,Paid
+excel,Excel Skills for Business,https://www.coursera.org/specializations/excel,Free
+excel,Advanced Excel Course,https://www.udemy.com/course/excel-from-beginner-to-advanced/,Paid
+communication,Improving Communication Skills,https://www.coursera.org/learn/wharton-communication-skills,Free
+communication,Business Communication,https://www.udemy.com/course/business-communication-skills/,Paid
+marketing,Digital Marketing,https://www.coursera.org/specializations/digital-marketing,Free
+marketing,Marketing Masterclass,https://www.udemy.com/course/marketing-masterclass/,Paid
+react,Frontend Development with React,https://www.coursera.org/learn/frontend-react,Free
+react,React Complete Guide,https://www.udemy.com/course/react-the-complete-guide-incl-redux/,Paid
