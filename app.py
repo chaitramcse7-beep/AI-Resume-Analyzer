@@ -20,24 +20,11 @@ st.markdown('<div class="subtitle">Resume Analysis | Job Recommendations | Skill
 
 st.divider()
 
-# Layout
-col1, col2 = st.columns(2)
+# Upload
+st.subheader("Upload Resume")
+uploaded_file = st.file_uploader("Upload PDF", type=["pdf"])
 
-with col1:
-    st.subheader("Upload Resume")
-    uploaded_file = st.file_uploader("Upload PDF", type=["pdf"])
-
-with col2:
-    st.subheader("Target Job Role")
-    job_desc = st.selectbox("Select Role", [
-        "Data Scientist",
-        "Web Developer",
-        "AI Engineer",
-        "HR Manager",
-        "Marketing Executive"
-    ])
-
-# Job Descriptions (Expanded - IT + Non-IT)
+# Job Data (IT + Non-IT)
 job_data = {
     "Data Scientist": "python machine learning statistics data analysis pandas numpy",
     "Web Developer": "html css javascript react node web development",
@@ -49,63 +36,7 @@ job_data = {
     "Sales Executive": "sales negotiation communication crm client relationship"
 }
 
-# Extract PDF text
-def extract_text(file):
-    reader = PyPDF2.PdfReader(file)
-    text = ""
-    for page in reader.pages:
-        if page.extract_text():
-            text += page.extract_text()
-    return text
-
-# Main Logic
-if uploaded_file:
-    st.divider()
-    st.subheader("Analysis Results")
-
-    resume_text = extract_text(uploaded_file)
-
-    # --- MAIN MATCH SCORE ---
-    vectorizer = TfidfVectorizer()
-    vectors = vectorizer.fit_transform([resume_text, job_data[job_desc]])
-
-    similarity = cosine_similarity(vectors[0], vectors[1])[0][0]
-    score = round(similarity * 100, 2)
-
-    st.metric(label="Match Score", value=f"{score}%")
-    st.progress(int(score))
-
-    # --- SKILL ANALYSIS ---
-    resume_words = set(resume_text.lower().split())
-    job_words = set(job_data[job_desc].split())
-
-    matched_skills = job_words.intersection(resume_words)
-    missing_skills = job_words - resume_words
-
-    col3, col4 = st.columns(2)
-
-    with col3:
-        st.subheader("Matched Skills")
-        st.write(", ".join(matched_skills) if matched_skills else "None")
-
-    with col4:
-        st.subheader("Missing Skills")
-        st.write(", ".join(missing_skills) if missing_skills else "None")
-
-    if missing_skills:
-        st.info("Recommended skills to improve: " + ", ".join(missing_skills))
-
-    # --- 🔥 JOB RECOMMENDATION LOGIC ---
-    st.divider()
-    st.subheader("Top Job Recommendations")
-
-    scores = []
-
-    for role, desc in job_data.items():
-        vectors = vectorizer.fit_transform([resume_text, desc])
-        similarity = cosine_similarity(vectors[0], vectors[1])[0][0]
-        scores.append((role, similarity))
-    # --- COURSE DATABASE (REALISTIC MIX: FREE + PAID) ---
+# Course Data
 course_data = {
     "python": [
         ("Python for Everybody (Free)", "https://www.coursera.org/specializations/python"),
@@ -137,29 +68,74 @@ course_data = {
     ]
 }
 
-# --- COURSE RECOMMENDATION ---
-st.divider()
-st.subheader("Recommended Courses")
+# Extract PDF
+def extract_text(file):
+    reader = PyPDF2.PdfReader(file)
+    text = ""
+    for page in reader.pages:
+        if page.extract_text():
+            text += page.extract_text()
+    return text.lower()
 
-recommended_courses = []
-used_skills = set()
+# Main Logic
+if uploaded_file:
+    st.divider()
+    st.subheader("Analysis Results")
 
-# pick top missing skills (limit 3)
-for skill in list(missing_skills)[:3]:
-    for key in course_data:
-        if key in skill and key not in used_skills:
-            recommended_courses.extend(course_data[key])
-            used_skills.add(key)
+    resume_text = extract_text(uploaded_file)
 
-# show top 3 courses
-if recommended_courses:
-    for course in recommended_courses[:3]:
-        name, link = course
-        st.markdown(f"- [{name}]({link})")
-else:
-    st.write("No specific courses found. Try improving general skills.")
-    # Sort and get top 3
+    vectorizer = TfidfVectorizer()
+
+    # --- JOB MATCHING ---
+    scores = []
+
+    for role, desc in job_data.items():
+        vectors = vectorizer.fit_transform([resume_text, desc])
+        similarity = cosine_similarity(vectors[0], vectors[1])[0][0]
+        scores.append((role, similarity))
+
     top_jobs = sorted(scores, key=lambda x: x[1], reverse=True)[:3]
+
+    # Show Top Roles
+    st.subheader("Top Career Matches")
 
     for role, score in top_jobs:
         st.write(f"{role} — Match: {round(score*100,2)}%")
+
+    # --- SKILL ANALYSIS (use best role) ---
+    best_role = top_jobs[0][0]
+    job_words = set(job_data[best_role].split())
+    resume_words = set(resume_text.split())
+
+    matched_skills = job_words.intersection(resume_words)
+    missing_skills = job_words - resume_words
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.subheader("Matched Skills")
+        st.write(", ".join(matched_skills) if matched_skills else "None")
+
+    with col2:
+        st.subheader("Missing Skills")
+        st.write(", ".join(missing_skills) if missing_skills else "None")
+
+    # --- COURSE RECOMMENDATION ---
+    st.divider()
+    st.subheader("Recommended Courses")
+
+    recommended_courses = []
+    used = set()
+
+    for skill in list(missing_skills)[:3]:
+        for key in course_data:
+            if key in skill and key not in used:
+                recommended_courses.extend(course_data[key])
+                used.add(key)
+
+    if recommended_courses:
+        for course in recommended_courses[:3]:
+            name, link = course
+            st.markdown(f"- [{name}]({link})")
+    else:
+        st.write("No specific courses found. Improve general skills.")
