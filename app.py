@@ -105,7 +105,59 @@ if uploaded_file:
         vectors = vectorizer.fit_transform([resume_text, desc])
         similarity = cosine_similarity(vectors[0], vectors[1])[0][0]
         scores.append((role, similarity))
+    # --- COURSE DATABASE (REALISTIC MIX: FREE + PAID) ---
+course_data = {
+    "python": [
+        ("Python for Everybody (Free)", "https://www.coursera.org/specializations/python"),
+        ("Complete Python Bootcamp (Paid)", "https://www.udemy.com/course/complete-python-bootcamp/")
+    ],
+    "machine learning": [
+        ("Machine Learning by Andrew Ng (Free)", "https://www.coursera.org/learn/machine-learning"),
+        ("ML A-Z Course (Paid)", "https://www.udemy.com/course/machinelearning/")
+    ],
+    "sql": [
+        ("SQL for Data Science (Free)", "https://www.coursera.org/learn/sql-for-data-science"),
+        ("SQL Bootcamp (Paid)", "https://www.udemy.com/course/the-complete-sql-bootcamp/")
+    ],
+    "excel": [
+        ("Excel Skills for Business (Free)", "https://www.coursera.org/specializations/excel"),
+        ("Advanced Excel Course (Paid)", "https://www.udemy.com/course/excel-from-beginner-to-advanced/")
+    ],
+    "communication": [
+        ("Improving Communication Skills (Free)", "https://www.coursera.org/learn/wharton-communication-skills"),
+        ("Business Communication (Paid)", "https://www.udemy.com/course/business-communication-skills/")
+    ],
+    "marketing": [
+        ("Digital Marketing (Free)", "https://www.coursera.org/specializations/digital-marketing"),
+        ("Marketing Masterclass (Paid)", "https://www.udemy.com/course/marketing-masterclass/")
+    ],
+    "react": [
+        ("Frontend Development with React (Free)", "https://www.coursera.org/learn/frontend-react"),
+        ("React Complete Guide (Paid)", "https://www.udemy.com/course/react-the-complete-guide-incl-redux/")
+    ]
+}
 
+# --- COURSE RECOMMENDATION ---
+st.divider()
+st.subheader("Recommended Courses")
+
+recommended_courses = []
+used_skills = set()
+
+# pick top missing skills (limit 3)
+for skill in list(missing_skills)[:3]:
+    for key in course_data:
+        if key in skill and key not in used_skills:
+            recommended_courses.extend(course_data[key])
+            used_skills.add(key)
+
+# show top 3 courses
+if recommended_courses:
+    for course in recommended_courses[:3]:
+        name, link = course
+        st.markdown(f"- [{name}]({link})")
+else:
+    st.write("No specific courses found. Try improving general skills.")
     # Sort and get top 3
     top_jobs = sorted(scores, key=lambda x: x[1], reverse=True)[:3]
 
