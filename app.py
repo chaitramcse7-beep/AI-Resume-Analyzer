@@ -3,25 +3,58 @@ import PyPDF2
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-st.set_page_config(page_title="AI Resume Analyzer", layout="centered")
+# Page Config
+st.set_page_config(page_title="AI Career Assistant", layout="wide")
 
-st.markdown("<h1 style='text-align: center;'>📄 AI Resume Analyzer</h1>", unsafe_allow_html=True)
-st.markdown("Upload your resume and check job match")
+# Custom Styling
+st.markdown("""
+    <style>
+    .title {
+        text-align: center;
+        font-size: 36px;
+        font-weight: bold;
+    }
+    .subtitle {
+        text-align: center;
+        color: gray;
+        margin-bottom: 20px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
+# Header
+st.markdown('<div class="title">AI Career Assistant</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Resume Analysis | Job Recommendations | Skill Improvement</div>', unsafe_allow_html=True)
 
-job_desc = st.selectbox("Select Job Role", [
-    "Data Scientist",
-    "Web Developer",
-    "AI Engineer"
-])
+st.divider()
 
+# Layout
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("Upload Resume")
+    uploaded_file = st.file_uploader("Upload PDF", type=["pdf"])
+
+with col2:
+    st.subheader("Target Job Role")
+    job_desc = st.selectbox("Select Role", [
+        "Data Scientist",
+        "Web Developer",
+        "AI Engineer",
+        "HR Manager",
+        "Marketing Executive"
+    ])
+
+# Job Descriptions
 job_descriptions = {
     "Data Scientist": "python machine learning data analysis statistics pandas numpy",
     "Web Developer": "html css javascript react node web development",
-    "AI Engineer": "python deep learning nlp tensorflow pytorch"
+    "AI Engineer": "python deep learning nlp tensorflow pytorch",
+    "HR Manager": "communication recruitment leadership employee relations",
+    "Marketing Executive": "seo content marketing social media branding"
 }
 
+# Extract text from PDF
 def extract_text(file):
     reader = PyPDF2.PdfReader(file)
     text = ""
@@ -30,7 +63,11 @@ def extract_text(file):
             text += page.extract_text()
     return text
 
+# Main Logic
 if uploaded_file:
+    st.divider()
+    st.subheader("Analysis Results")
+
     resume_text = extract_text(uploaded_file)
 
     vectorizer = TfidfVectorizer()
@@ -39,21 +76,27 @@ if uploaded_file:
     similarity = cosine_similarity(vectors[0], vectors[1])[0][0]
     score = round(similarity * 100, 2)
 
-    st.subheader(f"Match Score: {score}%")
+    # Score
+    st.metric(label="Match Score", value=f"{score}%")
     st.progress(int(score))
 
-    if score < 50:
-        st.error("Needs improvement")
-    else:
-        st.success("Good match")
-
+    # Skill Comparison
     resume_words = set(resume_text.lower().split())
     job_words = set(job_descriptions[job_desc].split())
 
+    matched_skills = job_words.intersection(resume_words)
     missing_skills = job_words - resume_words
 
-    st.subheader("Missing Skills:")
+    col3, col4 = st.columns(2)
+
+    with col3:
+        st.subheader("Matched Skills")
+        st.write(", ".join(matched_skills) if matched_skills else "None")
+
+    with col4:
+        st.subheader("Missing Skills")
+        st.write(", ".join(missing_skills) if missing_skills else "None")
+
+    # Suggestion
     if missing_skills:
-        st.write(", ".join(missing_skills))
-    else:
-        st.write("You have all key skills!")
+        st.info("Recommended skills to improve: " + ", ".join(missing_skills))
