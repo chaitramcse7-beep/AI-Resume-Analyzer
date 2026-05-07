@@ -9,8 +9,7 @@ from google import genai
 
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="ResumeAI", layout="wide")
-
-client = genai.Client(api_key="AIzaSyCqrNsOQ9Nf9GW3-FMIDgq4-XxM0XhYGso")
+client = genai.Client(api_key=st.secrets["GOOGLE_API_KEY"])
 
 # ---------------- UI ----------------
 st.markdown("""
@@ -170,7 +169,7 @@ def fetch_jobs(role):
     url = "https://jsearch.p.rapidapi.com/search"
 
     headers = {
-        "X-RapidAPI-Key": "7ac3737f0emshfefa978e5b48b97p1685b1jsnf106843c1eeb",
+        "X-RapidAPI-Key": st.secrets["RAPIDAPI_KEY"],
         "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
     }
 
