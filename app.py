@@ -6,10 +6,18 @@ import os
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from google import genai
+from supabase import create_client
 
 # ---------------- CONFIG ----------------
 st.set_page_config(page_title="ResumeAI", layout="wide")
 client = genai.Client(api_key=st.secrets["GOOGLE_API_KEY"])
+
+
+supabase = create_client(
+    st.secrets["SUPABASE_URL"],
+    st.secrets["SUPABASE_KEY"]
+)
+
 
 # ---------------- UI ----------------
 st.markdown("""
@@ -303,30 +311,19 @@ def show_skeleton():
 
 def save_history(user, data):
 
-    file = "history.json"
+    supabase.table("resume_history").insert({
 
-    if os.path.exists(file):
+        "user_email": user,
 
-        with open(file, "r") as f:
-            try:
-                history = json.load(f)
-            except:
-                history = {}
+        "name": data.get("name", ""),
 
-    else:
-        history = {}
+        "summary": data.get("summary", ""),
 
-    if user not in history:
-        history[user] = []
+        "ats_score": str(data.get("ats_score", ""))
 
-    # Add unique ID
-    data["id"] = str(len(history[user]) + 1)
+    }).execute()
 
-    history[user].append(data)
-
-    with open(file, "w") as f:
-        json.dump(history, f, indent=4)
-
+    
 
 def load_history(user):
 
